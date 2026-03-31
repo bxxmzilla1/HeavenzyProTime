@@ -1,0 +1,5 @@
+{
+  "name": "Heavenzy Pro",
+  "description": "A worker management app for clocking in/out with GPS tracking and device verification.",
+  "requestFramePermissions": ["geolocation"]
+}

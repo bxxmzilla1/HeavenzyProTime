@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for both admins and workers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "photoURL": { "type": "string", "format": "uri", "description": "Profile picture URL" },
+        "jobTitle": { "type": "string", "description": "Worker's job title" },
+        "role": { "type": "string", "enum": ["admin", "worker"], "description": "User role" },
+        "deviceCode": { "type": "string", "description": "Unique code for the worker's phone" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "TimeLog": {
+      "title": "TimeLog",
+      "description": "Clock-in/out event log.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Worker's UID" },
+        "type": { "type": "string", "enum": ["in", "out"], "description": "Log type" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Event timestamp" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "description": "GPS coordinates"
+        },
+        "deviceCode": { "type": "string", "description": "Device code at the time of event" }
+      },
+      "required": ["uid", "type", "timestamp", "location", "deviceCode"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/timeLogs/{logId}": {
+      "schema": "TimeLog",
+      "description": "Clock-in/out event records"
+    }
+  }
+}
