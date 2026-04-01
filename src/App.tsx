@@ -42,29 +42,11 @@ export default function App() {
           if (userDoc.exists()) {
             setProfile(userDoc.data() as UserProfile);
           } else {
-            // Check if this is a new user or a deleted one
-            // If it's the admin email, we always allow creation
-            const isAdmin = firebaseUser.email === "bxxmzilla@gmail.com";
-            
-            if (isAdmin) {
-              const newProfile: UserProfile = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                displayName: firebaseUser.displayName || 'New Admin',
-                photoURL: firebaseUser.photoURL || '',
-                role: 'admin',
-                createdAt: new Date().toISOString(),
-              };
-              await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-              setProfile(newProfile);
-            } else {
-              // If not admin and doc doesn't exist, it might be a deleted account
-              // We sign them out to prevent ghost sessions
-              console.warn("User profile not found. Signing out.");
-              await auth.signOut();
-              setUser(null);
-              setProfile(null);
-            }
+            // If profile doesn't exist, sign out to prevent ghost sessions
+            console.warn("User profile not found. Signing out.");
+            await auth.signOut();
+            setUser(null);
+            setProfile(null);
           }
         } catch (error) {
           console.error("Error fetching profile:", error);

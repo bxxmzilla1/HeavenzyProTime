@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { LogIn, ShieldCheck, Clock, MapPin, Smartphone, User as UserIcon, Key, ChevronRight } from 'lucide-react';
+import { LogIn, ShieldCheck, Clock, MapPin, Smartphone, User as UserIcon, Key, ChevronRight, Mail } from 'lucide-react';
 
 export default function Login() {
   const [mode, setMode] = useState<'admin' | 'worker'>('worker');
@@ -14,15 +14,23 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleGoogleLogin = async () => {
+  // Admin Login State
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
     } catch (err: any) {
-      console.error("Login Error:", err);
-      setError(err.message || "Failed to login with Google.");
+      console.error("Admin Login Error:", err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError("Invalid email or password.");
+      } else {
+        setError(err.message || "Failed to login.");
+      }
     } finally {
       setLoading(false);
     }
@@ -160,22 +168,53 @@ export default function Login() {
                   </button>
                 </motion.form>
               ) : (
-                <motion.div
+                <motion.form
                   key="admin-form"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  onSubmit={handleAdminLogin}
+                  className="space-y-5"
                 >
-                  <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100/50 text-center">
-                    <ShieldCheck className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 font-medium">
-                      Admin access requires Google authentication for enhanced security.
+                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50 text-center mb-2">
+                    <ShieldCheck className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-600 font-medium">
+                      Admin access requires email authentication.
                     </p>
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Admin Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="email"
+                        required
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-medium"
+                        placeholder="admin@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Password</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="password"
+                        required
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-medium"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
                   <button
-                    onClick={handleGoogleLogin}
+                    type="submit"
                     disabled={loading}
                     className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gray-900 text-white rounded-2xl font-bold text-lg hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl shadow-gray-200"
                   >
@@ -184,11 +223,11 @@ export default function Login() {
                     ) : (
                       <>
                         <LogIn className="w-5 h-5" />
-                        Admin Sign In
+                        Admin Login
                       </>
                     )}
                   </button>
-                </motion.div>
+                </motion.form>
               )}
             </AnimatePresence>
 
