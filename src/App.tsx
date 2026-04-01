@@ -13,6 +13,24 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -77,14 +95,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans selection:bg-blue-100">
+    <div className={`min-h-screen font-sans selection:bg-blue-100 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <AnimatePresence mode="wait">
         {!user ? (
           <Login key="login" />
         ) : profile?.role === 'admin' ? (
-          <AdminDashboard profile={profile} />
+          <AdminDashboard profile={profile} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
         ) : profile ? (
-          <WorkerDashboard profile={profile} />
+          <WorkerDashboard profile={profile} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
         ) : (
           <div className="min-h-screen flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

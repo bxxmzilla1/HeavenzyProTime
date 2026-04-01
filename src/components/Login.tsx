@@ -36,7 +36,7 @@ export default function Login() {
       // 1. Find the user profile by displayName (username)
       // This is necessary because we use unique internal emails to avoid 'email-already-in-use' errors
       const q = query(
-        collection(db, 'users'), 
+        collection(db, 'users_public'), 
         where('displayName', '==', username),
         where('role', '==', 'worker'),
         limit(1)

@@ -1,7 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -16,13 +18,45 @@ service cloud.firestore {
          (request.auth.token.email == "bxxmzilla@gmail.com" && request.auth.token.email_verified == true));
     }
 
-    // User profiles
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.uid is string &&
+             data.email is string &&
+             data.displayName is string &&
+             data.role in ['admin', 'worker'];
+    }
+
+    function isValidTimeLog(data) {
+      return data.uid is string &&
+             data.type in ['in', 'out'] &&
+             data.timestamp is timestamp &&
+             data.location is map &&
+             data.deviceCode is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // User profiles (Private)
     match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Public user profiles (For login lookup)
+    match /users_public/{userId} {
       // Allow read for everyone to support worker login lookup by displayName
       allow read: if true;
-      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     // Time logs
@@ -30,6 +64,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && 
                     request.resource.data.uid == request.auth.uid &&
+                    isValidTimeLog(request.resource.data) &&
                     exists(/databases/$(database)/documents/users/$(request.auth.uid));
       allow update: if isAdmin();
       allow delete: if isAdmin();

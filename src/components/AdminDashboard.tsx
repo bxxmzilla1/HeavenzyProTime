@@ -20,7 +20,7 @@ const getSecondaryAuth = () => {
   return getAuth(secondaryApp);
 };
 
-export default function AdminDashboard({ profile }: { profile: UserProfile }) {
+export default function AdminDashboard({ profile, isDarkMode, toggleDarkMode }: { profile: UserProfile; isDarkMode: boolean; toggleDarkMode: () => void }) {
   const [workers, setWorkers] = useState<UserProfile[]>([]);
   const [logs, setLogs] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +110,20 @@ export default function AdminDashboard({ profile }: { profile: UserProfile }) {
         currency: 'PHP',
       };
 
-      await setDoc(doc(db, 'users', newUser.uid), newProfile);
+      const batch = writeBatch(db);
+      
+      // Main profile (private)
+      batch.set(doc(db, 'users', newUser.uid), newProfile);
+      
+      // Public profile (for login lookup)
+      batch.set(doc(db, 'users_public', newUser.uid), {
+        uid: newUser.uid,
+        displayName: newWorkerUsername,
+        email: email,
+        role: 'worker'
+      });
+
+      await batch.commit();
 
       // 3. Sign out the secondary instance immediately so it doesn't persist
       await signOut(secondaryAuth);
@@ -144,6 +157,7 @@ export default function AdminDashboard({ profile }: { profile: UserProfile }) {
       
       // 1. Delete the user profile from Firestore
       batch.delete(doc(db, 'users', selectedWorker.uid));
+      batch.delete(doc(db, 'users_public', selectedWorker.uid));
 
       // 2. Delete all their time logs
       const logsQuery = query(collection(db, 'timeLogs'), where('uid', '==', selectedWorker.uid));
@@ -171,9 +185,10 @@ export default function AdminDashboard({ profile }: { profile: UserProfile }) {
     try {
       const batch = writeBatch(db);
       
-      // 1. Delete all worker profiles
+      // 1. Delete all worker profiles and public profiles
       workers.forEach(worker => {
         batch.delete(doc(db, 'users', worker.uid));
+        batch.delete(doc(db, 'users_public', worker.uid));
       });
 
       // 2. Delete all time logs
@@ -960,6 +975,7 @@ export default function AdminDashboard({ profile }: { profile: UserProfile }) {
           worker={selectedWorker}
           logs={logs}
           adminProfile={profile}
+          isDarkMode={isDarkMode}
         />
       )}
     </div>
